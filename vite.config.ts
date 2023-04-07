@@ -8,6 +8,7 @@ export default defineConfig(({ command, mode }) => {
     define: {
       // 'process.env': env,
       'process.env.VITE_REPLICATE_API_TOKEN': JSON.stringify(env.VITE_REPLICATE_API_TOKEN),
+      'process.env.VITE_LAMBDA_FUNCTION': JSON.stringify(env.VITE_LAMBDA_FUNCTION),
     },
     root: './src',
     build: {

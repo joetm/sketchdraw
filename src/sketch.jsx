@@ -9,6 +9,7 @@ import Drawing, { brushArc } from 'react-drawing'
 import StatusPoller from './components/StatusPoller'
 
 // const replicate = new Replicate({token: process.env.REPLICATE_API_TOKEN})
+const lambdafunction = process.env.VITE_LAMBDA_FUNCTION
 
 
 function Homepage() {
@@ -16,6 +17,7 @@ function Homepage() {
   const [brushColor, setBrushColor] = useState('rgba(10,10,10, 0.6)')
   const canvasRef = useRef(null)
   const promptRef = useRef('')
+
 
   async function handleSend(e) {
     e.preventDefault()
@@ -50,7 +52,7 @@ function Homepage() {
         'Content-Type': 'application/json',
         'Origin': "*",
         'Host': 'localhost',
-        'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`
+        // 'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`
       },
       body: JSON.stringify({
         "version": "435061a1b5a4c1e26740464bf786efdfa9cb3a3ac488595a2de23e143fdb0117",
@@ -67,7 +69,7 @@ function Homepage() {
       })
     }
 
-    const output = await fetch('https://api.replicate.com/v1/predictions', options)
+    const output = await fetch(lambdafunction, options)
       .then((res) => res.json())
 
     console.log('output', output)
