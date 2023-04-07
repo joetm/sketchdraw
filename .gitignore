@@ -1,3 +1,4 @@
+ENV/
 .env
 .idea/
 node_modules/
