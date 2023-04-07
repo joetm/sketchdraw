@@ -1,0 +1,53 @@
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-height: 100vh;
+}
+
+#root {
+  margin: 0 auto;
+  padding: 1rem;
+  text-align: center;
+}
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* color-scheme: dark light;*/
+  background-color: #FFFFFF;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+.loader, canvas {
+  border: 3px solid #AFAFAF;
+  width: 500px;
+  height: 500px;
+  background-color: #FFFFFF;
+  text-align: center;
+  vertical-align: middle;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
