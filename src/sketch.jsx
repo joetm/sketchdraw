@@ -30,14 +30,13 @@ function Homepage() {
     const a_prompt = 'best quality, extremely detailed' // default
     const n_prompt = 'longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality' // default
 
-    const headers_post = {
-      // 'Accept': 'application/json',
-      'Content-Type': 'application/json',
-    }
-
     const options = {
       method: 'POST',
-      headers: headers_post,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`
+      },
       body: JSON.stringify({
         "version": `${process.env.REPLICATE_MODEL}`,
         "input": {
@@ -52,10 +51,12 @@ function Homepage() {
         }
       })
     }
+    console.log('method', options.method)
+    console.log('body', options.body)
+    console.log('headers', options.headers)
 
     // POST request to create the prediction
-    const prediction = await fetch(lambdafunction, options)
-      .then((res) => res.json())
+    const prediction = await fetch(lambdafunction, options).then((res) => res.json())
     console.log('prediction', prediction)
 
     if (!prediction?.id) {
