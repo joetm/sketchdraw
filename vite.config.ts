@@ -7,8 +7,9 @@ export default defineConfig(({ command, mode }) => {
   return {
     define: {
       // 'process.env': env,
-      'process.env.VITE_REPLICATE_API_TOKEN': JSON.stringify(env.VITE_REPLICATE_API_TOKEN),
-      'process.env.VITE_LAMBDA_FUNCTION': JSON.stringify(env.VITE_LAMBDA_FUNCTION),
+      'process.env.REPLICATE_API_TOKEN': JSON.stringify(env.VITE_REPLICATE_API_TOKEN),
+      'process.env.AWS_GATEWAY': JSON.stringify(env.VITE_AWS_GATEWAY),
+      'process.env.REPLICATE_MODEL': JSON.stringify(env.VITE_REPLICATE_MODEL),
     },
     root: './src',
     build: {

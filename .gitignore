@@ -1,4 +1,7 @@
 .env
+AWS_LAMBDA
+API-EXAMPLE.txt
+event.json
 .idea/
 node_modules/
 .vscode/

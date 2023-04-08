@@ -8,8 +8,8 @@ import Form from 'react-bootstrap/Form'
 import Drawing, { brushArc } from 'react-drawing'
 import StatusPoller from './components/StatusPoller'
 
-// const replicate = new Replicate({token: process.env.REPLICATE_API_TOKEN})
-const lambdafunction = process.env.VITE_LAMBDA_FUNCTION
+
+const lambdafunction = process.env.AWS_GATEWAY
 
 
 function Homepage() {
@@ -19,46 +19,30 @@ function Homepage() {
   const promptRef = useRef('')
 
 
-  async function handleSend(e) {
+  async function generate(e) {
     e.preventDefault()
     e.stopPropagation()
     const prompt = promptRef.current.value
     console.log('prompt', prompt)
     const dataURL = canvasRef.current.toDataURL("image/jpeg", 1.0)
-    console.log('dataURL', dataURL)
-    // let image = dataURL.split('data:image/png;')[1]
-    // console.log('image', image)
+    // console.log('dataURL', dataURL)
 
     const a_prompt = 'best quality, extremely detailed' // default
     const n_prompt = 'longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality' // default
 
-    // const controlnetModel = await replicate.models.get("jagilley/controlnet-scribble:435061a1b5a4c1e26740464bf786efdfa9cb3a3ac488595a2de23e143fdb0117")
-    // const controlnetPrediction = await controlnetModel.predict({
-    //   image: dataURL,
-    //   prompt: prompt,
-    //   image_resolution: '512',
-    //   ddim_steps: 50,
-    //   scale: 9, // guidance scale
-    //   eta: 0, // DDIM
-    //   a_prompt, // an added prompt
-    //   n_prompt, // negative prompts
-    // })
+    const headers_post = {
+      // 'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    }
 
-    // TODO: move this to node server
-    const options = {  
+    const options = {
       method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Origin': "*",
-        'Host': 'localhost',
-        // 'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`
-      },
+      headers: headers_post,
       body: JSON.stringify({
-        "version": "435061a1b5a4c1e26740464bf786efdfa9cb3a3ac488595a2de23e143fdb0117",
+        "version": `${process.env.REPLICATE_MODEL}`,
         "input": {
           image: dataURL,
-          prompt: prompt,
+          prompt,
           image_resolution: '512',
           ddim_steps: 50,
           scale: 9, // guidance scale
@@ -69,10 +53,42 @@ function Homepage() {
       })
     }
 
-    const output = await fetch(lambdafunction, options)
+    // POST request to create the prediction
+    const prediction = await fetch(lambdafunction, options)
       .then((res) => res.json())
+    console.log('prediction', prediction)
 
-    console.log('output', output)
+    if (!prediction?.id) {
+      // TODO
+      return
+    }
+
+    // poll prediction status
+    const get_headers = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`
+    }
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+    async function checkStatus() {
+      let runloop = true
+      let status = null
+      let progress = null
+      // while (runloop) {
+        await delay(2000)
+        progress = await fetch(lambdafunction + `?id=${prediction.id}`,
+            { method: 'GET', headers: get_headers })
+            .then((res) => res.json())
+        if (progress.message === 'Internal server error') {
+          status = 'error'
+        }
+        // runloop = progress.status !== 'succeeded' || status !== 'error'
+      // }
+      // console.log('finalprogress', progress)
+      return progress
+    }
+    const finalprediction = await checkStatus()
+    console.log('finalprediction', finalprediction)
 
   }
 
@@ -113,7 +129,7 @@ function Homepage() {
           />
         </Form.Group>
         <p className="mb-3 mt-3">
-          <Button onClick={handleSend} className="btn btn-warning" variant="primary" type="submit">Generate</Button>
+          <Button onClick={generate} className="btn btn-warning" variant="primary" type="submit">Generate</Button>
           {' '}Styles:{' '}
           <Button variant="light" type="submit">Photograph</Button>{' '}
           <Button variant="light" type="submit">Oil Painting</Button>{' '}
