@@ -1,5 +1,6 @@
 .env
 AWS_LAMBDA
+curl-success.txt
 API-EXAMPLE.txt
 event.json
 .idea/

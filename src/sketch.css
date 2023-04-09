@@ -28,8 +28,6 @@ body {
 
 .loader, canvas {
   border: 3px solid #AFAFAF;
-  width: 500px;
-  height: 500px;
   background-color: #FFFFFF;
   text-align: center;
   vertical-align: middle;
