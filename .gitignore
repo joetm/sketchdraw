@@ -1,6 +1,10 @@
 .env
 AWS_LAMBDA
-curl-success.txt
+curl-post-success.txt
+curl-get-success.txt
+encodeJSON.py
+event2.json
+jsonobj.txt
 API-EXAMPLE.txt
 event.json
 .idea/
