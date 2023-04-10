@@ -25,7 +25,7 @@ function Loader({width, height, percent=0, visible=false}) {
       margin: 0,
       padding: 0,
       display: 'table-cell',
-      backgroundColor: 'red',
+      backgroundColor: 'yellow',
       height: `${height}px`,
       width: `${percent / 100 * width}px`,
       position: 'relative',

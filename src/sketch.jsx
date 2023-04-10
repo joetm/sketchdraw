@@ -2,27 +2,44 @@
 
 import './sketch.css'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form'
 import Drawing, { brushArc } from 'react-drawing'
 import Loading from './components/Loading'
+import { ArrowRepeat } from 'react-bootstrap-icons'
 
 const lambdafunction = process.env.AWS_GATEWAY
 
-const a_prompt = 'best quality, highly detailed, awardwinning, trending on artstation, 8k'
-const n_prompt = 'lowres, bad anatomy, bad hands, missing fingers, extra digit, cropped, worst quality, low quality, text, watermark'
-  // longbody, 
+const a_prompt = 'best quality, highly detailed, awardwinning, HQ, 8k'
+const n_prompt = 'worst quality, low quality, text, watermark, lowres, bad anatomy, bad hands, longbody, missing fingers, extra digit, cropped'
 
 
 function Homepage() {
   const [status, setStatus] = useState('ready')
   const [percent, setPercent] = useState(0)
+  const [canvasSize, setCanvasSize] = useState({ w:500, h:500 })
   const promptRef = useRef('')
   const canvasRef = useRef(null)
+  const containerRef = useRef(null)
+  let canvasWasResized = false
 
   // canvas size
-  const w = 500, h = 500
+  let w = 500,
+        h = 500
+
+  useEffect(() => {
+    if (containerRef?.current) {
+      const topMargin = containerRef.current.offsetTop
+      if (topMargin > 0) {
+        const x = canvasSize.w + 2*topMargin - 20
+        console.log(`Set canvas to size ${x}`)
+        setCanvasSize({w: x, h: x})
+      }
+    }
+  }, [])
+
+
   // brush options
   let brushColor = 'rgba(10,10,10, 0.6)'
   let brushSize = 2
@@ -30,7 +47,7 @@ function Homepage() {
 
   function resetCanvas() {
     const context = canvasRef.current.getContext('2d')
-    context.clearRect(0, 0, w, h)
+    context.clearRect(0, 0, canvasSize.w, canvasSize.h)
     setPercent(0)
     setStatus('ready')
   }
@@ -109,7 +126,7 @@ function Homepage() {
       image.crossOrigin = "anonymous"
       image.onload = () => {
         const context = canvasRef.current.getContext('2d')
-        context.drawImage(image, 0, 0, w, h);
+        context.drawImage(image, 0, 0, canvasSize.w, canvasSize.h);
       }
     }
 
@@ -180,11 +197,11 @@ function Homepage() {
   return (
     <div className="App">
       <section>
-        <div style={{position: 'relative'}}>
+        <div style={{position: 'relative'}} ref={containerRef}>
           <Loading
             percent={percent}
-            height={w}
-            width={h}
+            height={canvasSize.w}
+            width={canvasSize.h}
             visible={status !== 'ready' && status !== 'succeeded'}
           />
           <Drawing
@@ -193,8 +210,8 @@ function Homepage() {
                 fillStyle: 'black',
                 size: brushSize,
               })}
-            height={w}
-            width={h}
+            height={canvasSize.w}
+            width={canvasSize.h}
           />
         </div>
       </section>
@@ -215,7 +232,9 @@ function Homepage() {
         <p className="mb-3 mt-3">
           <Button onClick={generate} disabled={status !== 'ready'} className="btn btn-warning" variant="primary" type="submit">Generate</Button>
           {' '}
-          <Button onClick={resetCanvas} variant="light" >Reset Canvas</Button>
+          <Button onClick={resetCanvas} variant="light" >
+            <ArrowRepeat /> Reset
+          </Button>
         </p>
       </Form>
     </div>

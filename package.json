@@ -23,6 +23,7 @@
     "cordova-plugin-screen-orientation": "^3.0.3",
     "react": "^18.2.0",
     "react-bootstrap": "^2.7.2",
+    "react-bootstrap-icons": "^1.10.3",
     "react-drawing": "^1.2.1",
     "vite-plugin-environment": "^1.1.3"
   },
