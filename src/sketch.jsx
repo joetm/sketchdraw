@@ -11,7 +11,7 @@ import { ArrowRepeat } from 'react-bootstrap-icons'
 
 const lambdafunction = process.env.AWS_GATEWAY
 
-const a_prompt = 'best quality, highly detailed, awardwinning, HQ, 8k'
+const a_prompt = 'best quality, highly detailed, awardwinning, amazing, trending on artstation, by Greg Rutkowski and James Gurney, HQ, 8k'
 const n_prompt = 'worst quality, low quality, text, watermark, lowres, bad anatomy, bad hands, longbody, missing fingers, extra digit, cropped'
 
 
@@ -22,11 +22,6 @@ function Homepage() {
   const promptRef = useRef('')
   const canvasRef = useRef(null)
   const containerRef = useRef(null)
-  let canvasWasResized = false
-
-  // canvas size
-  let w = 500,
-        h = 500
 
   useEffect(() => {
     if (containerRef?.current) {
@@ -230,7 +225,7 @@ function Homepage() {
           />
         </Form.Group>
         <p className="mb-3 mt-3">
-          <Button onClick={generate} disabled={status !== 'ready'} className="btn btn-warning" variant="primary" type="submit">Generate</Button>
+          <Button onClick={generate} disabled={status !== 'ready' && status !== 'succeeded'} className="btn btn-warning" variant="primary" type="submit">Generate</Button>
           {' '}
           <Button onClick={resetCanvas} variant="light" >
             <ArrowRepeat /> Reset
