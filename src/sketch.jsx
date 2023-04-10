@@ -8,12 +8,11 @@ import Form from 'react-bootstrap/Form'
 import Drawing, { brushArc } from 'react-drawing'
 import Loading from './components/Loading'
 
-const DEV = false
-
 const lambdafunction = process.env.AWS_GATEWAY
 
-const a_prompt = 'best quality, highly detailed' // default
-const n_prompt = 'longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, cropped, worst quality, low quality, text' // default
+const a_prompt = 'best quality, highly detailed, awardwinning, trending on artstation, 8k'
+const n_prompt = 'lowres, bad anatomy, bad hands, missing fingers, extra digit, cropped, worst quality, low quality, text, watermark'
+  // longbody, 
 
 
 function Homepage() {
@@ -47,8 +46,6 @@ function Homepage() {
 
     let response = null
 
-if (!DEV) {
-
     const prompt = promptRef.current.value
     const dataURL = canvasRef.current.toDataURL("image/jpeg", 1.0)
     let req_body =  JSON.stringify({
@@ -74,9 +71,6 @@ if (!DEV) {
       },
       body: req_body
     }
-    // console.log('method', options.method)
-    // console.log('body', options.body)
-    // console.log('headers', options.headers)
     try {
       response = await fetch(lambdafunction, options).then((res) => {
         return res.json()
@@ -86,8 +80,6 @@ if (!DEV) {
       console.log(error)
       return
     }
-
-}
 
     setStatus(response?.status)
     const prediction_id = response?.id
@@ -114,6 +106,7 @@ if (!DEV) {
       console.log('image_url', image_url)
       const image = new Image()
       image.src = image_url
+      image.crossOrigin = "anonymous"
       image.onload = () => {
         const context = canvasRef.current.getContext('2d')
         context.drawImage(image, 0, 0, w, h);
@@ -181,21 +174,6 @@ if (!DEV) {
     }
 
     pollUntilCompleted(prediction_id)
-      // .then((result) => {
-      //   console.log('pollUntilCompleted.then()')
-      //   if (result) {
-      //     console.log('Result:', result)
-      //     const image_url = result.output.slice(-1)
-      //     console.log('image_url', image_url)
-      //     showImage(image_url)
-      //   } else {
-      //     console.log('Polling failed or reached the maximum number of attempts.')
-      //     console.log('result', result)
-      //   }
-      // })
-      // .catch((error) => {
-      //   console.error('Error:', error)
-      // })
 
   } // generate
 
@@ -230,20 +208,14 @@ if (!DEV) {
             id="prompt"
             as="textarea"
             rows={3} 
-            placeholder="E.g., oil painting of a majestic turtle on the beach"
+            placeholder="E.g., oil painting of a happy turtle on the beach"
             aria-describedby="helpBlock"
           />
         </Form.Group>
         <p className="mb-3 mt-3">
           <Button onClick={generate} disabled={status !== 'ready'} className="btn btn-warning" variant="primary" type="submit">Generate</Button>
           {' '}
-          <Button onClick={resetCanvas} variant="light" >Start Over</Button>
-          {/*
-          Styles:{' '}
-          <Button variant="light" type="submit">Photograph</Button>{' '}
-          <Button variant="light" type="submit">Oil Painting</Button>{' '}
-          <Button variant="light" type="submit">Pencil Sketch</Button>
-          */}
+          <Button onClick={resetCanvas} variant="light" >Reset Canvas</Button>
         </p>
       </Form>
     </div>
