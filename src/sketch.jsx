@@ -8,21 +8,28 @@ import Form from 'react-bootstrap/Form'
 import Drawing, { brushArc } from 'react-drawing'
 import Loading from './components/Loading'
 
+const DEV = false
 
 const lambdafunction = process.env.AWS_GATEWAY
+
+const a_prompt = 'best quality, highly detailed' // default
+const n_prompt = 'longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, cropped, worst quality, low quality, text' // default
 
 
 function Homepage() {
   const [status, setStatus] = useState('ready')
   const [percent, setPercent] = useState(0)
-  const [brushColor, setBrushColor] = useState('rgba(10,10,10, 0.6)')
-
   const promptRef = useRef('')
   const canvasRef = useRef(null)
 
+  // canvas size
   const w = 500, h = 500
+  // brush options
+  let brushColor = 'rgba(10,10,10, 0.6)'
+  let brushSize = 2
 
-  function clearCanvas() {
+
+  function resetCanvas() {
     const context = canvasRef.current.getContext('2d')
     context.clearRect(0, 0, w, h)
     setPercent(0)
@@ -33,17 +40,17 @@ function Homepage() {
     e.preventDefault()
     e.stopPropagation()
 
-    setStatus('polling')
+    // --------------------------------------
+    // POST request to create the prediction
+    // --------------------------------------
+    setStatus('POST')
+
+    let response = null
+
+if (!DEV) {
 
     const prompt = promptRef.current.value
-    console.log('prompt', prompt)
     const dataURL = canvasRef.current.toDataURL("image/jpeg", 1.0)
-    // console.log('dataURL', dataURL)
-
-    const a_prompt = 'best quality, extremely detailed' // default
-    const n_prompt = 'longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality' // default
-
-    /*
     let req_body =  JSON.stringify({
         "version": `${process.env.REPLICATE_MODEL}`,
         "input": {
@@ -57,8 +64,7 @@ function Homepage() {
           n_prompt, // negative prompts
         }
       })
-    req_body = req_body.replace(/\\n/g, '')
-
+    req_body = req_body.replace(/\\n/g, '') // TODO: check if this is needed
     const options = {
       method: 'POST',
       headers: {
@@ -68,14 +74,11 @@ function Homepage() {
       },
       body: req_body
     }
-    console.log('method', options.method)
-    console.log('body', options.body)
-    console.log('headers', options.headers)
-
-    // POST request to create the prediction
+    // console.log('method', options.method)
+    // console.log('body', options.body)
+    // console.log('headers', options.headers)
     try {
-      const response = await fetch(lambdafunction, options).then((res) => {
-        console.log('res', res)
+      response = await fetch(lambdafunction, options).then((res) => {
         return res.json()
       })
       console.log('response', response)
@@ -83,66 +86,32 @@ function Homepage() {
       console.log(error)
       return
     }
-    */
 
-    // if (!prediction?.id) {
-    //   // TODO
-    //   return
-    // }
+}
 
+    setStatus(response?.status)
+    const prediction_id = response?.id
 
+    if (!prediction_id) {
+      console.error('No prediction id')
+      resetCanvas()
+      return
+    }
+
+    // --------------------------------------
     // poll prediction status
-    // const get_headers = {
-    //   'Accept': 'application/json',
-    //   'Content-Type': 'application/json',
-    //   'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`
-    // }
-    // const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-    // async function checkStatus() {
-      // let runloop = true
-      // let status = null
-      // let progress = null
-      // while (runloop) {
-        // await delay(1000)
-        // progress = await fetch(lambdafunction + `?id=${prediction.id}`,
-        //     { method: 'GET', headers: get_headers })
-        //     .then((res) => res.json())
-        // if (progress.message === 'Internal server error') {
-        //   status = 'error'
-        // }
-        // runloop = progress.status !== 'succeeded' || status !== 'error'
-      // }
-      // console.log('finalprogress', progress)
-    //   return progress
-    // }
-    // const finalprediction = await checkStatus()
-    // console.log('finalprediction', finalprediction)
+    // --------------------------------------
 
-    setTimeout(() => {
-      setPercent(20)
-    }, 1000);
+    // status codes:
+    // starting: the prediction is starting up. If this status lasts longer than a few seconds, then it's typically because a new worker is being started to run the prediction.
+    // processing: the predict() method of the model is currently running.
+    // succeeded: the prediction completed successfully.
+    // failed: the prediction encountered an error during processing.
+    // canceled: the prediction was canceled by the user.
 
-    setTimeout(() => {
-      setPercent(35)
-    }, 2000);
-
-    setTimeout(() => {
-      setPercent(50)
-    }, 3000);
-
-    setTimeout(() => {
-      setPercent(75)
-    }, 4000);
-
-    setTimeout(() => {
-      setPercent(100)
-    }, 5000);
-
-    function showImage() {
+    function showImage(image_url) {
       // DEV: pretend that we already have the image
-      const image_url = 'https://replicate.delivery/pbxt/c0fSfa87tngxKE8Xs250bfaVrjmsItyR3LMaFtUtqwjb9HRgA/out-0.png'
-      console.log(image_url)
-      console.log(canvasRef.current)
+      console.log('image_url', image_url)
       const image = new Image()
       image.src = image_url
       image.onload = () => {
@@ -151,14 +120,84 @@ function Homepage() {
       }
     }
 
-    setTimeout(() => {
-      setStatus('ready')
-      showImage()
-    }, 6000);
+    const statuscodes = {
+      running: [ 'starting', 'processing' ],
+      success: [ 'succeeded' ],
+      failure: [
+        'failed',   // replicate.com
+        'canceled', // replicate.com
+        'timeout',
+        'error',
+      ],
+    }
 
-  }
+    const get_headers = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`
+    }
 
-  console.log('loader visible:', status !== 'ready')
+    function getPercentFromLogs(logs) {
+      if (!logs) { return 0 }
+      const index = logs.lastIndexOf('%')
+      if (index != -1) {
+          return +logs.substr(index-3, 3)
+      }
+    }
+
+    async function pollUntilCompleted(id, interval=1000, maxAttempts=60) {
+      let attempts = 0
+      async function getStatus() {
+        try {
+          console.log(`Polling attempt ${attempts}`)
+          const res = await fetch(`${lambdafunction}?id=${id}`, { method: 'GET', headers: get_headers });
+          console.log(`Polling response`, res)
+          const data = await res.json()
+          console.log('response data', data)
+          setStatus(data.status)
+          setPercent(getPercentFromLogs(data?.logs))
+          if (data.status === 'succeeded' || data.status === 'failed') {
+            console.log('Final status:', data.status)
+            console.log('Final data:', data)
+            setPercent(100)
+            const image_url = data.output.slice(-1)
+            console.log('image_url', image_url)
+            showImage(image_url)
+            return data
+          } else if (attempts >= maxAttempts) {
+            console.error('Maximum number of attempts reached.')
+            return null
+          } else {
+            attempts++
+            setTimeout(getStatus, interval)
+          }
+        } catch (error) {
+          setStatus('error')
+          console.error('Error fetching status:', error)
+          return null
+        }
+      }
+      return getStatus()
+    }
+
+    pollUntilCompleted(prediction_id)
+      // .then((result) => {
+      //   console.log('pollUntilCompleted.then()')
+      //   if (result) {
+      //     console.log('Result:', result)
+      //     const image_url = result.output.slice(-1)
+      //     console.log('image_url', image_url)
+      //     showImage(image_url)
+      //   } else {
+      //     console.log('Polling failed or reached the maximum number of attempts.')
+      //     console.log('result', result)
+      //   }
+      // })
+      // .catch((error) => {
+      //   console.error('Error:', error)
+      // })
+
+  } // generate
 
   return (
     <div className="App">
@@ -168,13 +207,13 @@ function Homepage() {
             percent={percent}
             height={w}
             width={h}
-            visible={status !== 'ready'}
+            visible={status !== 'ready' && status !== 'succeeded'}
           />
           <Drawing
             ref={canvasRef}
             brush={brushArc({
                 fillStyle: 'black',
-                size: 5,
+                size: brushSize,
               })}
             height={w}
             width={h}
@@ -196,9 +235,9 @@ function Homepage() {
           />
         </Form.Group>
         <p className="mb-3 mt-3">
-          <Button onClick={generate} className="btn btn-warning" variant="primary" type="submit">Generate</Button>
+          <Button onClick={generate} disabled={status !== 'ready'} className="btn btn-warning" variant="primary" type="submit">Generate</Button>
           {' '}
-          <Button onClick={clearCanvas} variant="light" >Start Over</Button>
+          <Button onClick={resetCanvas} variant="light" >Start Over</Button>
           {/*
           Styles:{' '}
           <Button variant="light" type="submit">Photograph</Button>{' '}

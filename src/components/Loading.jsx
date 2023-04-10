@@ -3,8 +3,8 @@ import React, { useState } from 'react'
 
 function Loader({width, height, percent=0, visible=false}) {
 
-  console.log('loader percent', percent)
-  console.log('loader visible', visible)
+  // console.log('loader percent', percent)
+  // console.log('loader visible', visible)
 
   const styles = {
     loader: {
@@ -15,6 +15,7 @@ function Loader({width, height, percent=0, visible=false}) {
       position: 'absolute',
       top: 0,
       left: 0,
+      opacity: 0.8,
       overflow: 'hidden',
       display: visible ? 'block' : 'none',
       zIndex: 999,
