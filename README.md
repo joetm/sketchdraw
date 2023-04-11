@@ -1,12 +1,26 @@
-## Created with Capacitor Create App
+## SketchDraw
 
-This app was created using [`@capacitor/create-app`](https://github.com/ionic-team/create-capacitor-app),
-and comes with a very minimal shell for building an app.
+A simple hybrid (android/web) app that converts rough sketches into artworks
 
-### Running this example
+Built with React, bootstrap-react, and Replicate.com, AWS API Gateway, AWS Lambda Functions, vite, and Capacitor.
 
-To run the provided example, you can use `npm start` command.
+
+### Running
 
 ```bash
 npm start
+```
+
+### Building
+
+```bash
+npm build
+```
+
+### Installing
+
+```bash
+npm i @capacitor/android @capacitor/ios
+npx cap add android
+npx cap sync
 ```
