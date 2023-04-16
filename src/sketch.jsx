@@ -42,6 +42,8 @@ const styles = {
   },
 }
 
+const panelmargin = 16
+
 
 
 function Homepage() {
@@ -59,7 +61,7 @@ function Homepage() {
     if (canvasContainerRef?.current) {
       const dw = window.innerWidth || doc.documentElement.clientWidth || body.clientWidth
       const dh = window.innerHeight || doc.documentElement.clientHeight || body.clientHeight
-      const ch = controlsRef?.current.clientHeight + 16 * 2
+      const ch = controlsRef?.current.clientHeight + panelmargin * 2
       const squaresize = Math.min(dw, dh - ch)
       setCanvasSize({w: squaresize, h: squaresize})
     }
@@ -82,6 +84,7 @@ function Homepage() {
     const context = canvasRef.current.getContext('2d')
     context.clearRect(0, 0, canvasSize.w, canvasSize.h)
     setPercent(0)
+    promptRef.current.value = ''
     setStatus('ready')
   }
 
@@ -238,7 +241,8 @@ function Homepage() {
 
   return (
     <div className="App">
-      <section>
+
+      <section style={{marginBottom:0, paddingBottom:0}}>
         <div style={{position: 'relative'}} ref={canvasContainerRef}>
           <Loading
             percent={percent}
@@ -258,12 +262,14 @@ function Homepage() {
         </div>
       </section>
 
-      <div ref={controlsRef}>
+      <div ref={controlsRef} className="mt-3 mb-3">
         <Form>
-          <Form.Group className="mb-3 mt-3">
+          <Form.Group className="mb-3">
+            {/*
             <Form.Text id="helpBlock" muted>
               Describe what you want to see
             </Form.Text>
+            */}
             <Form.Control
               ref={promptRef}
               id="prompt"
@@ -273,7 +279,7 @@ function Homepage() {
               aria-describedby="helpBlock"
             />
           </Form.Group>
-          <div className="mb-3 mt-3">
+          <div>
             <Button
               onClick={generate}
               disabled={status !== 'ready' && status !== 'succeeded'}
