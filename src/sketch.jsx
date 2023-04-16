@@ -50,6 +50,20 @@ const sampleprompt = {
 
 const panelmargin = 16
 
+const get_headers = {
+  'Accept': 'application/json',
+  'Content-Type': 'application/json',
+  'Authorization': `Token ${replToken}`
+}
+
+function getPercentFromLogs(logs) {
+  if (!logs) { return 0 }
+  const index = logs.lastIndexOf('%')
+  if (index != -1) {
+      return +logs.substr(index-3, 3)
+  }
+}
+
 
 
 function Homepage() {
@@ -123,6 +137,8 @@ function Homepage() {
     }
   }
 
+
+  /* CAPTIONING */
   // THIS TAKES WAY TOO LONG!
   async function describe(e) {
     e.preventDefault()
@@ -162,6 +178,65 @@ function Homepage() {
     }
   }
 
+
+  // --------------------------------------
+  // poll prediction status
+  // --------------------------------------
+  // status codes:
+  // starting: the prediction is starting up. If this status lasts longer than a few seconds, then it's typically because a new worker is being started to run the prediction.
+  // processing: the predict() method of the model is currently running.
+  // succeeded: the prediction completed successfully.
+  // failed: the prediction encountered an error during processing.
+  // canceled: the prediction was canceled by the user.
+  const statuscodes = {
+    running: [ 'starting', 'processing' ],
+    success: [ 'succeeded' ],
+    failure: [
+      'failed',   // replicate.com
+      'canceled', // replicate.com
+      'timeout',
+      'error',
+    ],
+  }
+
+  /* POLLING */
+  async function pollUntilCompleted(id, interval=1000, maxAttempts=60) {
+    let attempts = 0
+    async function getStatus() {
+      try {
+        console.log(`Polling attempt ${attempts}`)
+        const res = await fetch(`${lambdafunction}?id=${id}`, { method: 'GET', headers: get_headers });
+        console.log(`Polling response`, res)
+        const data = await res.json()
+        console.log('response data', data)
+        setStatus(data.status)
+        setPercent(getPercentFromLogs(data?.logs))
+        if (data.status === 'succeeded' || data.status === 'failed') {
+          console.log('Final status:', data.status)
+          console.log('Final data:', data)
+          setPercent(100)
+          const image_url = data.output.slice(-1)
+          console.log('image_url', image_url)
+          showImage(image_url)
+          return data
+        } else if (attempts >= maxAttempts) {
+          console.error('Maximum number of attempts reached.')
+          return null
+        } else {
+          attempts++
+          setTimeout(getStatus, interval)
+        }
+      } catch (error) {
+        setStatus('error')
+        console.error('Error fetching status:', error)
+        return null
+      }
+    }
+    return getStatus()
+  }
+
+
+  /* GENERATE */
   async function generate(e) {
     e.preventDefault()
     e.stopPropagation()
@@ -213,79 +288,10 @@ function Homepage() {
       return
     }
 
-    // --------------------------------------
-    // poll prediction status
-    // --------------------------------------
-    // status codes:
-    // starting: the prediction is starting up. If this status lasts longer than a few seconds, then it's typically because a new worker is being started to run the prediction.
-    // processing: the predict() method of the model is currently running.
-    // succeeded: the prediction completed successfully.
-    // failed: the prediction encountered an error during processing.
-    // canceled: the prediction was canceled by the user.
-
-    const statuscodes = {
-      running: [ 'starting', 'processing' ],
-      success: [ 'succeeded' ],
-      failure: [
-        'failed',   // replicate.com
-        'canceled', // replicate.com
-        'timeout',
-        'error',
-      ],
-    }
-
-    const get_headers = {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Authorization': `Token ${replToken}`
-    }
-
-    function getPercentFromLogs(logs) {
-      if (!logs) { return 0 }
-      const index = logs.lastIndexOf('%')
-      if (index != -1) {
-          return +logs.substr(index-3, 3)
-      }
-    }
-
-    async function pollUntilCompleted(id, interval=1000, maxAttempts=60) {
-      let attempts = 0
-      async function getStatus() {
-        try {
-          console.log(`Polling attempt ${attempts}`)
-          const res = await fetch(`${lambdafunction}?id=${id}`, { method: 'GET', headers: get_headers });
-          console.log(`Polling response`, res)
-          const data = await res.json()
-          console.log('response data', data)
-          setStatus(data.status)
-          setPercent(getPercentFromLogs(data?.logs))
-          if (data.status === 'succeeded' || data.status === 'failed') {
-            console.log('Final status:', data.status)
-            console.log('Final data:', data)
-            setPercent(100)
-            const image_url = data.output.slice(-1)
-            console.log('image_url', image_url)
-            showImage(image_url)
-            return data
-          } else if (attempts >= maxAttempts) {
-            console.error('Maximum number of attempts reached.')
-            return null
-          } else {
-            attempts++
-            setTimeout(getStatus, interval)
-          }
-        } catch (error) {
-          setStatus('error')
-          console.error('Error fetching status:', error)
-          return null
-        }
-      }
-      return getStatus()
-    }
-
     pollUntilCompleted(prediction_id)
 
   } // generate
+
 
   return (
     <div className="App">
