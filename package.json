@@ -1,7 +1,7 @@
 {
-  "name": "capacitor-app",
+  "name": "sketchdraw",
   "version": "1.0.0",
-  "description": "An Amazing Capacitor App",
+  "description": "A simple capacitor app for sketching.",
   "main": "index.js",
   "keywords": [
     "capacitor",
