@@ -2,23 +2,54 @@
 
 import './sketch.css'
 
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react'
+import React, { useState, useRef, useLayoutEffect } from 'react'
 import Button from 'react-bootstrap/Button'
+import Dropdown from 'react-bootstrap/Dropdown'
 import Form from 'react-bootstrap/Form'
 import Drawing, { brushArc } from 'react-drawing'
 import Loading from './components/Loading'
 import { ArrowRepeat } from 'react-bootstrap-icons'
 
-const lambdafunction = process.env.AWS_GATEWAY
 
-const a_prompt = 'best quality, highly detailed, awardwinning, amazing, trending on artstation, by Greg Rutkowski and James Gurney, HQ, 8k'
-const n_prompt = 'worst quality, low quality, text, watermark, lowres, bad anatomy, bad hands, longbody, missing fingers, extra digit, cropped'
+const lambdafunction = process.env.AWS_GATEWAY
+const replToken = process.env.REPLICATE_API_TOKEN
+const replModel = process.env.REPLICATE_MODEL
+
+
+const subjects = {
+  'landscape': {
+    a_prompt: 'trending on artstation, by Greg Rutkowski and James Gurney',
+    n_prompt: 'cropped',
+  },
+  'portrait': {
+    a_prompt: 'by Artgerm Ruan Jia Loish WLOP, trending on artstation',
+    n_prompt: 'bad anatomy, bad hands, longbody, missing fingers, extra digit, cropped',
+  },
+}
+
+const styles = {
+  'oil painting': {
+    a_prompt: 'oil painting, oil on canvas, best quality, highly detailed, awardwinning, amazing, HQ, 8k',
+    n_prompt: 'worst quality, low quality, text, watermark, lowres',
+  },
+  'photograph': {
+    a_prompt: 'photograph, f1.2 100mm ISO 100, best quality, highly detailed, awardwinning, amazing, HQ, 8k',
+    n_prompt: 'worst quality, low quality, text, watermark, lowres',
+  },
+  'pixel art': {
+    a_prompt: 'pixel art, by eBoy and AlbertoV, best quality, highly detailed, Pixel Studio, pixelation, awardwinning, amazing, HQ, 8k',
+    n_prompt: 'worst quality, low quality, text, watermark, lowres',
+  },
+}
+
 
 
 function Homepage() {
   const [status, setStatus] = useState('ready')
   const [percent, setPercent] = useState(0)
   const [canvasSize, setCanvasSize] = useState({ w:500, h:500 })
+  const [subject, setSubject] = useState('landscape')
+  const [style, setStyle] = useState('oil painting')
   const promptRef = useRef('')
   const canvasRef = useRef(null)
   const canvasContainerRef = useRef(null)
@@ -54,6 +85,15 @@ function Homepage() {
     setStatus('ready')
   }
 
+  function changeSubject(eventKey, event) {
+    setSubject(event.target.innerHTML.toLowerCase())
+    console.info(`Changed subject to ${event.target.innerHTML}`)
+  }
+  function changeStyle(eventKey, event) {
+    setStyle(event.target.innerHTML.toLowerCase())
+    console.info(`Changed style to ${event.target.innerHTML}`)
+  }
+
   async function generate(e) {
     e.preventDefault()
     e.stopPropagation()
@@ -68,7 +108,7 @@ function Homepage() {
     const prompt = promptRef.current.value
     const dataURL = canvasRef.current.toDataURL("image/jpeg", 1.0)
     let req_body =  JSON.stringify({
-        "version": `${process.env.REPLICATE_MODEL}`,
+        "version": `${replModel}`,
         "input": {
           image: dataURL,
           prompt,
@@ -76,8 +116,8 @@ function Homepage() {
           ddim_steps: 50,
           scale: 9, // guidance scale
           eta: 0, // DDIM
-          a_prompt, // an added prompt
-          n_prompt, // negative prompts
+          a_prompt: subjects[subject].a_prompt.concat(", ", styles[style].a_prompt), // additional prompts
+          n_prompt: subjects[subject].n_prompt.concat(", ", styles[style].n_prompt), // negative prompts
         }
       })
     req_body = req_body.replace(/\\n/g, '') // TODO: check if this is needed
@@ -86,7 +126,7 @@ function Homepage() {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`
+        'Authorization': `Token ${replToken}`
       },
       body: req_body
     }
@@ -146,7 +186,7 @@ function Homepage() {
     const get_headers = {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
-      'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`
+      'Authorization': `Token ${replToken}`
     }
 
     function getPercentFromLogs(logs) {
@@ -217,6 +257,7 @@ function Homepage() {
           />
         </div>
       </section>
+
       <div ref={controlsRef}>
         <Form>
           <Form.Group className="mb-3 mt-3">
@@ -232,13 +273,39 @@ function Homepage() {
               aria-describedby="helpBlock"
             />
           </Form.Group>
-          <p className="mb-3 mt-3">
-            <Button onClick={generate} disabled={status !== 'ready' && status !== 'succeeded'} className="btn btn-warning" variant="primary" type="submit">Generate</Button>
+          <div className="mb-3 mt-3">
+            <Button
+              onClick={generate}
+              disabled={status !== 'ready' && status !== 'succeeded'}
+              variant="warning"
+              type="submit"
+            >Generate</Button>
+            {' '}
+            <Dropdown onSelect={changeSubject} style={{display: 'inline-block'}}>
+              <Dropdown.Toggle variant="primary" id="dropdown-basic">
+                Subject
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item active={subject === 'landscape'} eventKey="1">Landscape</Dropdown.Item>
+                <Dropdown.Item active={subject === 'portrait'}  eventKey="2">Portrait</Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+            {' '}
+            <Dropdown onSelect={changeStyle} style={{display: 'inline-block'}}>
+              <Dropdown.Toggle variant="primary" id="dropdown-basic">
+                Style
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item active={style === 'oil painting'} eventKey="1">Oil Painting</Dropdown.Item>
+                <Dropdown.Item active={style === 'photograph'} eventKey="2">Photograph</Dropdown.Item>
+                <Dropdown.Item active={style === 'pixel art'} eventKey="3">Pixel Art</Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
             {' '}
             <Button onClick={resetCanvas} variant="light" >
               <ArrowRepeat /> Reset
             </Button>
-          </p>
+          </div>
         </Form>
       </div>
     </div>
