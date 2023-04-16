@@ -4,23 +4,36 @@ A simple hybrid (android/web) app that converts rough sketches into artworks
 
 Built with React, bootstrap-react, and Replicate.com, AWS API Gateway, AWS Lambda Functions, vite, and Capacitor.
 
+### Installing
 
-### Running
+```bash
+sudo apt update && sudo apt install android-sdk
+npm install
+npm i @capacitor/android
+npx cap add android
+```
+
+### Running web app
 
 ```bash
 npm start
 ```
 
-### Building
+### Building web app
 
 ```bash
 npm build
 ```
 
-### Installing
+### Updating the mobile app
 
 ```bash
-npm i @capacitor/android @capacitor/ios
-npx cap add android
 npx cap sync
 ```
+
+### Previewing the mobile app
+
+```bash
+npx cap run android
+```
+

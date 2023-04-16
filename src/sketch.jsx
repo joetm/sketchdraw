@@ -2,7 +2,7 @@
 
 import './sketch.css'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form'
 import Drawing, { brushArc } from 'react-drawing'
@@ -21,18 +21,25 @@ function Homepage() {
   const [canvasSize, setCanvasSize] = useState({ w:500, h:500 })
   const promptRef = useRef('')
   const canvasRef = useRef(null)
-  const containerRef = useRef(null)
+  const canvasContainerRef = useRef(null)
+  const controlsRef = useRef(null)
 
-  useEffect(() => {
-    if (containerRef?.current) {
-      const topMargin = containerRef.current.offsetTop
-      if (topMargin > 0) {
-        const x = canvasSize.w + 2*topMargin - 20
-        console.log(`Set canvas to size ${x}`)
-        setCanvasSize({w: x, h: x})
-      }
+  function resizeCanvas() {
+    if (canvasContainerRef?.current) {
+      const dw = window.innerWidth || doc.documentElement.clientWidth || body.clientWidth
+      const dh = window.innerHeight || doc.documentElement.clientHeight || body.clientHeight
+      const ch = controlsRef?.current.clientHeight + 16 * 2
+      const squaresize = Math.min(dw, dh - ch)
+      setCanvasSize({w: squaresize, h: squaresize})
     }
-  }, [])
+  }
+
+  // resize convas on window resize
+  useLayoutEffect(() => {
+    window.addEventListener('resize', resizeCanvas)
+    resizeCanvas()
+    return () => window.removeEventListener('resize', resizeCanvas)
+  }, []);
 
 
   // brush options
@@ -192,11 +199,11 @@ function Homepage() {
   return (
     <div className="App">
       <section>
-        <div style={{position: 'relative'}} ref={containerRef}>
+        <div style={{position: 'relative'}} ref={canvasContainerRef}>
           <Loading
             percent={percent}
-            height={canvasSize.w}
-            width={canvasSize.h}
+            height={canvasSize.h}
+            width={canvasSize.w}
             visible={status !== 'ready' && status !== 'succeeded'}
           />
           <Drawing
@@ -205,33 +212,35 @@ function Homepage() {
                 fillStyle: 'black',
                 size: brushSize,
               })}
-            height={canvasSize.w}
-            width={canvasSize.h}
+            height={canvasSize.h}
+            width={canvasSize.w}
           />
         </div>
       </section>
-      <Form>
-        <Form.Group className="mb-3 mt-3">
-          <Form.Text id="helpBlock" muted>
-            Describe what you want to see
-          </Form.Text>
-          <Form.Control
-            ref={promptRef}
-            id="prompt"
-            as="textarea"
-            rows={3} 
-            placeholder="E.g., oil painting of a happy turtle on the beach"
-            aria-describedby="helpBlock"
-          />
-        </Form.Group>
-        <p className="mb-3 mt-3">
-          <Button onClick={generate} disabled={status !== 'ready' && status !== 'succeeded'} className="btn btn-warning" variant="primary" type="submit">Generate</Button>
-          {' '}
-          <Button onClick={resetCanvas} variant="light" >
-            <ArrowRepeat /> Reset
-          </Button>
-        </p>
-      </Form>
+      <div ref={controlsRef}>
+        <Form>
+          <Form.Group className="mb-3 mt-3">
+            <Form.Text id="helpBlock" muted>
+              Describe what you want to see
+            </Form.Text>
+            <Form.Control
+              ref={promptRef}
+              id="prompt"
+              as="textarea"
+              rows={3} 
+              placeholder="E.g., oil painting of a happy turtle on the beach"
+              aria-describedby="helpBlock"
+            />
+          </Form.Group>
+          <p className="mb-3 mt-3">
+            <Button onClick={generate} disabled={status !== 'ready' && status !== 'succeeded'} className="btn btn-warning" variant="primary" type="submit">Generate</Button>
+            {' '}
+            <Button onClick={resetCanvas} variant="light" >
+              <ArrowRepeat /> Reset
+            </Button>
+          </p>
+        </Form>
+      </div>
     </div>
   )
 }
