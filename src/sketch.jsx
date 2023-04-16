@@ -13,7 +13,8 @@ import { ArrowRepeat } from 'react-bootstrap-icons'
 
 const lambdafunction = process.env.AWS_GATEWAY
 const replToken = process.env.REPLICATE_API_TOKEN
-const replModel = process.env.REPLICATE_MODEL
+const replGenModel = process.env.REPLICATE_GEN_MODEL
+const replDescribeModel = process.env.REPLICATE_DESCRIBE_MODEL
 
 
 const subjects = {
@@ -42,6 +43,11 @@ const styles = {
   },
 }
 
+const sampleprompt = {
+  normal: "a happy turtle on the beach",
+  expert: "oil painting of a happy turtle on the beach, highly detailed, trending on artstation, 8k",  
+}
+
 const panelmargin = 16
 
 
@@ -49,7 +55,8 @@ const panelmargin = 16
 function Homepage() {
   const [status, setStatus] = useState('ready')
   const [percent, setPercent] = useState(0)
-  const [canvasSize, setCanvasSize] = useState({ w:500, h:500 })
+  const [canvasSize, setCanvasSize] = useState({ w:512, h:512 })
+  const [mode, setMode] = useState('normal')
   const [subject, setSubject] = useState('landscape')
   const [style, setStyle] = useState('oil painting')
   const promptRef = useRef('')
@@ -88,6 +95,10 @@ function Homepage() {
     setStatus('ready')
   }
 
+  function changeMode(eventKey, event) {
+    setMode(event.target.innerHTML.toLowerCase())
+    console.info(`Changed mode to ${event.target.innerHTML}`)
+  }
   function changeSubject(eventKey, event) {
     setSubject(event.target.innerHTML.toLowerCase())
     console.info(`Changed subject to ${event.target.innerHTML}`)
@@ -97,21 +108,72 @@ function Homepage() {
     console.info(`Changed style to ${event.target.innerHTML}`)
   }
 
+  function getPrompt(target) {
+    if (mode === 'expert') { return '' }
+    return subjects[subject][target].concat(", ", styles[style][target])
+  }
+
+  function showImage(image_url) {
+    const image = new Image()
+    image.src = image_url
+    image.crossOrigin = "anonymous"
+    image.onload = () => {
+      const context = canvasRef.current.getContext('2d')
+      context.drawImage(image, 0, 0, canvasSize.w, canvasSize.h);
+    }
+  }
+
+  // THIS TAKES WAY TOO LONG!
+  async function describe(e) {
+    e.preventDefault()
+    e.stopPropagation()
+    // --------------------------------------
+    // POST request to the captioning model
+    // --------------------------------------
+    setStatus('POST')
+    let response = null
+    const dataURL = canvasRef.current.toDataURL("image/jpeg", 1.0)
+    let req_body =  JSON.stringify({
+        "version": `${replDescribeModel}`,
+        "input": {
+          image: dataURL,
+        }
+      })
+    req_body = req_body.replace(/\\n/g, '') // TODO: check if this is needed
+    const options = {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${replToken}`
+      },
+      body: req_body
+    }
+    try {
+      response = await fetch(lambdafunction, options).then((res) => {
+        return res.json()
+      })
+      console.log('response', response)
+      // promptRef.current.value = response
+    } catch (error) {
+      // TODO
+      console.log(error)
+      return
+    }
+  }
+
   async function generate(e) {
     e.preventDefault()
     e.stopPropagation()
-
     // --------------------------------------
     // POST request to create the prediction
     // --------------------------------------
     setStatus('POST')
-
     let response = null
-
     const prompt = promptRef.current.value
     const dataURL = canvasRef.current.toDataURL("image/jpeg", 1.0)
     let req_body =  JSON.stringify({
-        "version": `${replModel}`,
+        "version": `${replGenModel}`,
         "input": {
           image: dataURL,
           prompt,
@@ -119,8 +181,8 @@ function Homepage() {
           ddim_steps: 50,
           scale: 9, // guidance scale
           eta: 0, // DDIM
-          a_prompt: subjects[subject].a_prompt.concat(", ", styles[style].a_prompt), // additional prompts
-          n_prompt: subjects[subject].n_prompt.concat(", ", styles[style].n_prompt), // negative prompts
+          a_prompt: getPrompt('a_prompt'), // additional prompts
+          n_prompt: getPrompt('n_prompt'), // negative prompts
         }
       })
     req_body = req_body.replace(/\\n/g, '') // TODO: check if this is needed
@@ -139,13 +201,12 @@ function Homepage() {
       })
       console.log('response', response)
     } catch (error) {
+      // TODO
       console.log(error)
       return
     }
-
     setStatus(response?.status)
     const prediction_id = response?.id
-
     if (!prediction_id) {
       console.error('No prediction id')
       resetCanvas()
@@ -155,25 +216,12 @@ function Homepage() {
     // --------------------------------------
     // poll prediction status
     // --------------------------------------
-
     // status codes:
     // starting: the prediction is starting up. If this status lasts longer than a few seconds, then it's typically because a new worker is being started to run the prediction.
     // processing: the predict() method of the model is currently running.
     // succeeded: the prediction completed successfully.
     // failed: the prediction encountered an error during processing.
     // canceled: the prediction was canceled by the user.
-
-    function showImage(image_url) {
-      // DEV: pretend that we already have the image
-      console.log('image_url', image_url)
-      const image = new Image()
-      image.src = image_url
-      image.crossOrigin = "anonymous"
-      image.onload = () => {
-        const context = canvasRef.current.getContext('2d')
-        context.drawImage(image, 0, 0, canvasSize.w, canvasSize.h);
-      }
-    }
 
     const statuscodes = {
       running: [ 'starting', 'processing' ],
@@ -265,49 +313,65 @@ function Homepage() {
       <div ref={controlsRef} className="mt-3 mb-3">
         <Form>
           <Form.Group className="mb-3">
-            {/*
-            <Form.Text id="helpBlock" muted>
-              Describe what you want to see
-            </Form.Text>
-            */}
             <Form.Control
               ref={promptRef}
               id="prompt"
-              as="textarea"
-              rows={3} 
-              placeholder="E.g., oil painting of a happy turtle on the beach"
+              as={mode === 'easy' ? "div" : "textarea"}
+              rows={3}
+              placeholder={`E.g., ${sampleprompt[mode]}`}
               aria-describedby="helpBlock"
+              style={{
+                height: '80px',
+                color: mode === 'easy' ? "#FFFFFF" : null,
+                backgroundColor: mode === 'easy' ? "#666666" : null
+              }}
             />
           </Form.Group>
           <div>
             <Button
-              onClick={generate}
+              onClick={mode === 'easy' ? describe : generate}
               disabled={status !== 'ready' && status !== 'succeeded'}
               variant="warning"
               type="submit"
-            >Generate</Button>
-            {' '}
-            <Dropdown onSelect={changeSubject} style={{display: 'inline-block'}}>
-              <Dropdown.Toggle variant="primary" id="dropdown-basic">
-                Subject
+              style={{marginRight: '8px'}}
+            >
+              Generate
+            </Button>
+            <Dropdown onSelect={changeMode} style={{marginRight: '8px', display: 'inline-block'}}>
+              <Dropdown.Toggle variant="light" id="dropdown-basic">
+                Mode
               </Dropdown.Toggle>
               <Dropdown.Menu>
-                <Dropdown.Item active={subject === 'landscape'} eventKey="1">Landscape</Dropdown.Item>
-                <Dropdown.Item active={subject === 'portrait'}  eventKey="2">Portrait</Dropdown.Item>
+                {/*
+                <Dropdown.Item active={mode === 'easy'} eventKey="1">Easy</Dropdown.Item>
+                */}
+                <Dropdown.Item active={mode === 'normal'}  eventKey="2">Normal</Dropdown.Item>
+                <Dropdown.Item active={mode === 'expert'}  eventKey="3">Expert</Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
-            {' '}
-            <Dropdown onSelect={changeStyle} style={{display: 'inline-block'}}>
-              <Dropdown.Toggle variant="primary" id="dropdown-basic">
-                Style
-              </Dropdown.Toggle>
-              <Dropdown.Menu>
-                <Dropdown.Item active={style === 'oil painting'} eventKey="1">Oil Painting</Dropdown.Item>
-                <Dropdown.Item active={style === 'photograph'} eventKey="2">Photograph</Dropdown.Item>
-                <Dropdown.Item active={style === 'pixel art'} eventKey="3">Pixel Art</Dropdown.Item>
-              </Dropdown.Menu>
-            </Dropdown>
-            {' '}
+            {
+              mode === 'normal' && <>
+                <Dropdown onSelect={changeSubject} style={{marginRight: '8px', display: 'inline-block'}}>
+                  <Dropdown.Toggle variant="primary" id="dropdown-basic">
+                    Subject
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    <Dropdown.Item active={subject === 'landscape'} eventKey="1">Landscape</Dropdown.Item>
+                    <Dropdown.Item active={subject === 'portrait'}  eventKey="2">Portrait</Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown>
+                <Dropdown onSelect={changeStyle} style={{marginRight: '8px', display: 'inline-block'}}>
+                  <Dropdown.Toggle variant="primary" id="dropdown-basic">
+                    Style
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    <Dropdown.Item active={style === 'oil painting'} eventKey="1">Oil Painting</Dropdown.Item>
+                    <Dropdown.Item active={style === 'photograph'} eventKey="2">Photograph</Dropdown.Item>
+                    <Dropdown.Item active={style === 'pixel art'} eventKey="3">Pixel Art</Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown>
+              </>
+            }
             <Button onClick={resetCanvas} variant="light" >
               <ArrowRepeat /> Reset
             </Button>
