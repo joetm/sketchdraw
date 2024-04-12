@@ -1,0 +1,3 @@
+[submodule "src/react-drawing"]
+	path = src/react-drawing
+	url = https://github.com/sasza2/react-drawing.git
