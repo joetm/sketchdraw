@@ -1,12 +1,14 @@
-"use client"
+// "use client"
 
-import './sketch.css'
-
-import React, { useState, useRef, useLayoutEffect } from 'react'
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import Button from 'react-bootstrap/Button'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Form from 'react-bootstrap/Form'
-import Drawing, { brushArc } from 'react-drawing'
+
+// import Drawing, { brushArc } from 'react-drawing'
+// import Drawing from './DrawingWrapper'
+import Drawing, { brushArc } from './react-drawing/src/index.ts'
+
 import Loading from './components/Loading'
 import { ArrowRepeat } from 'react-bootstrap-icons'
 
@@ -23,7 +25,7 @@ const subjects = {
     n_prompt: 'cropped',
   },
   'portrait': {
-    a_prompt: 'by Artgerm Ruan Jia Loish WLOP, trending on artstation',
+    a_prompt: 'by Artgerm and WLOP, concept art, trending on artstation',
     n_prompt: 'bad anatomy, bad hands, longbody, missing fingers, extra digit, cropped',
   },
 }
@@ -31,6 +33,10 @@ const subjects = {
 const styles = {
   'oil painting': {
     a_prompt: 'oil painting, oil on canvas, best quality, highly detailed, awardwinning, amazing, HQ, 8k',
+    n_prompt: 'worst quality, low quality, text, watermark, lowres',
+  },
+  'abstract': {
+    a_prompt: 'abstract painting, mixed media, on canvas, highly detailed, 8k',
     n_prompt: 'worst quality, low quality, text, watermark, lowres',
   },
   'photograph': {
@@ -89,11 +95,15 @@ function Homepage() {
   }
 
   // resize convas on window resize
-  useLayoutEffect(() => {
-    window.addEventListener('resize', resizeCanvas)
+  // useLayoutEffect(() => {
+  //   window.addEventListener('resize', resizeCanvas)
+  //   resizeCanvas()
+  //   return () => window.removeEventListener('resize', resizeCanvas)
+  // }, [])
+  // resize canvas once when loaded
+  useEffect(() => {
     resizeCanvas()
-    return () => window.removeEventListener('resize', resizeCanvas)
-  }, []);
+  }, [])
 
 
   // brush options
@@ -292,6 +302,9 @@ function Homepage() {
 
   } // generate
 
+  console.log('Running sketch.jsx')
+
+  console.log('Drawing', Drawing)
 
   return (
     <div className="App">
@@ -372,8 +385,9 @@ function Homepage() {
                   </Dropdown.Toggle>
                   <Dropdown.Menu>
                     <Dropdown.Item active={style === 'oil painting'} eventKey="1">Oil Painting</Dropdown.Item>
-                    <Dropdown.Item active={style === 'photograph'} eventKey="2">Photograph</Dropdown.Item>
-                    <Dropdown.Item active={style === 'pixel art'} eventKey="3">Pixel Art</Dropdown.Item>
+                    <Dropdown.Item active={style === 'abstract'} eventKey="2">Abstract</Dropdown.Item>
+                    <Dropdown.Item active={style === 'photograph'} eventKey="3">Photograph</Dropdown.Item>
+                    <Dropdown.Item active={style === 'pixel art'} eventKey="4">Pixel Art</Dropdown.Item>
                   </Dropdown.Menu>
                 </Dropdown>
               </>

@@ -1,5 +1,5 @@
-import { SplashScreen } from '@capacitor/splash-screen';
-import { Camera } from '@capacitor/camera';
+// import { SplashScreen } from '@capacitor/splash-screen';
+// import { Camera } from '@capacitor/camera';
 // import Button from 'react-bootstrap/Button';
 // import Form from 'react-bootstrap/Form';
 

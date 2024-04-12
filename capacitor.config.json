@@ -1,11 +1,7 @@
 {
-  "appId": "com.example.app",
-  "appName": "sketchapp",
+  "appId": "com.sketchdraw.app",
+  "appName": "sketchdraw",
   "bundledWebRuntime": false,
   "webDir": "dist",
-  "plugins": {
-    "SplashScreen": {
-      "launchShowDuration": 0
-    }
-  }
+  "plugins": {}
 }
